@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diesel Inventory Control</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- jsPDF and jsPDF-AutoTable CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- SheetJS (xlsx) CDN for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        /* Custom styles for a professional look */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f6;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        /* Toast Notification styles */
+        .toast {
+            visibility: hidden;
+            min-width: 250px;
+            margin-left: -125px;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 101; /* Ensure it's above modals */
+            left: 50%;
+            bottom: 30px;
+            font-size: 17px;
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s, visibility 0.3s;
+        }
+        .toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+        .toast.success { background-color: #28a745; }
+        .toast.error { background-color: #dc3545; }
+
+        /* Sidebar transition */
+        #sidebar {
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Auth Section -->
+    <div id="auth-container" class="flex items-center justify-center h-screen bg-gray-200 p-4">
+        <div class="w-full max-w-md">
+            <!-- Login Form -->
+            <form id="login-form" class="bg-white shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4">
+                <div class="mb-6 text-center">
+                    <i class="fas fa-gas-pump text-4xl text-blue-500"></i>
+                    <h2 class="text-2xl font-bold text-gray-800 mt-2">Diesel Control Login</h2>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="login-email">Email</label>
+                    <input class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" id="login-email" type="email" placeholder="Email" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="login-password">Password</label>
+                    <input class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" id="login-password" type="password" placeholder="******************" required>
+                </div>
+                <div class="flex items-center justify-between">
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full" type="submit">
+                        Sign In
+                    </button>
+                </div>
+                <p class="text-center text-gray-500 text-sm mt-6">
+                    Don't have an account? <a href="#" id="show-register" class="font-bold text-blue-600 hover:text-blue-800">Register here</a>.
+                </p>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="bg-white shadow-lg rounded-lg px-8 pt-6 pb-8 mb-4 hidden">
+                <div class="mb-6 text-center">
+                    <i class="fas fa-user-plus text-4xl text-blue-500"></i>
+                    <h2 class="text-2xl font-bold text-gray-800 mt-2">Create Account</h2>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="register-email">Email</label>
+                    <input class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" id="register-email" type="email" placeholder="Email" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="register-password">Password</label>
+                    <input class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" id="register-password" type="password" placeholder="******************" required>
+                </div>
+                 <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="register-role">Role</label>
+                    <select id="register-role" class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="user" selected>User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="flex items-center justify-between">
+                    <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full" type="submit">
+                        Register
+                    </button>
+                </div>
+                <p class="text-center text-gray-500 text-sm mt-6">
+                    Already have an account? <a href="#" id="show-login" class="font-bold text-blue-600 hover:text-blue-800">Login here</a>.
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app-container" class="flex h-screen overflow-hidden hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-64 bg-gray-800 text-white flex-shrink-0 fixed lg:relative h-full z-30 transform -translate-x-full lg:translate-x-0">
+            <div class="p-5 bg-gray-900 flex items-center space-x-3 relative">
+                <i class="fas fa-gas-pump text-2xl text-blue-400"></i>
+                <div>
+                    <h1 class="text-lg font-bold">Diesel Control</h1>
+                    <p class="text-xs text-gray-400">by Aung Ye Hein</p>
+                </div>
+                <button id="sidebar-close" class="absolute top-3 right-3 text-gray-400 hover:text-white lg:hidden">
+                     <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            <nav class="mt-5">
+                <a href="#" id="nav-dashboard" class="nav-link flex items-center py-3 px-5 text-gray-300 hover:bg-gray-700 hover:text-white bg-gray-700 admin-only">
+                    <i class="fas fa-chart-line w-6"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" id="nav-add" class="nav-link flex items-center py-3 px-5 text-gray-300 hover:bg-gray-700 hover:text-white">
+                    <i class="fas fa-plus-circle w-6"></i>
+                    <span>Add New Entry</span>
+                </a>
+                <a href="#" id="nav-list" class="nav-link flex items-center py-3 px-5 text-gray-300 hover:bg-gray-700 hover:text-white">
+                    <i class="fas fa-list-alt w-6"></i>
+                    <span>Inventory List</span>
+                </a>
+                <a href="#" id="nav-costing" class="nav-link flex items-center py-3 px-5 text-gray-300 hover:bg-gray-700 hover:text-white admin-only">
+                    <i class="fas fa-dollar-sign w-6"></i>
+                    <span>Costing Report</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Sidebar Overlay -->
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden lg:hidden"></div>
+
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-white shadow-md p-4 flex justify-between items-center">
+                <button id="sidebar-toggle" class="text-gray-600 lg:hidden">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+                <h2 class="text-xl md:text-2xl font-semibold text-gray-800">Dashboard</h2>
+                <div class="flex items-center space-x-4">
+                    <div id="user-avatar" class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-xl"></div>
+                    <button id="logout-btn" class="text-gray-600 hover:text-red-500 font-medium">
+                        <i class="fas fa-sign-out-alt mr-1"></i> 
+                        <span class="hidden sm:inline">Logout</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 md:p-6">
+                
+                <!-- Dashboard View -->
+                <div id="dashboard-view" class="page admin-only">
+                    <!-- Dashboard Filters -->
+                    <div class="bg-white p-4 rounded-lg shadow-md mb-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
+                            <div>
+                                <label for="dash-start-date" class="block text-sm font-medium text-gray-700">Start Date</label>
+                                <input type="date" id="dash-start-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <label for="dash-end-date" class="block text-sm font-medium text-gray-700">End Date</label>
+                                <input type="date" id="dash-end-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                            <div class="flex space-x-2">
+                                <button id="apply-dash-filters" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">Apply</button>
+                                <button id="reset-dash-filters" class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Reset</button>
+                            </div>
+                             <div>
+                                <button id="export-dashboard-pdf" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                                    <i class="fas fa-file-pdf mr-2"></i> Print Report
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                        <div class="bg-white p-5 rounded-lg shadow-md flex items-center justify-between">
+                            <div>
+                                <h3 class="text-gray-500 font-medium">Current Stock (Liters)</h3>
+                                <p id="current-stock" class="text-3xl font-bold text-gray-800">0</p>
+                            </div>
+                            <i class="fas fa-tint text-4xl text-blue-500"></i>
+                        </div>
+                        <div class="bg-white p-5 rounded-lg shadow-md flex items-center justify-between">
+                            <div>
+                                <h3 class="text-gray-500 font-medium">Total Received (Liters)</h3>
+                                <p id="total-inflow" class="text-3xl font-bold text-gray-800">0</p>
+                            </div>
+                            <i class="fas fa-arrow-circle-up text-4xl text-green-500"></i>
+                        </div>
+                        <div class="bg-white p-5 rounded-lg shadow-md flex items-center justify-between">
+                            <div>
+                                <h3 class="text-gray-500 font-medium">Total Usage (Liters)</h3>
+                                <p id="total-outflow" class="text-3xl font-bold text-gray-800">0</p>
+                            </div>
+                            <i class="fas fa-arrow-circle-down text-4xl text-red-500"></i>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h3 class="text-xl font-semibold mb-4 text-gray-700">Inventory Trend</h3>
+                            <canvas id="inventoryChart"></canvas>
+                        </div>
+                         <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h3 class="text-xl font-semibold mb-4 text-gray-700">Monthly Usage</h3>
+                            <canvas id="monthlyUsageChart"></canvas>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h3 class="text-xl font-semibold mb-4 text-gray-700">Usage by Equipment</h3>
+                            <canvas id="usageByEquipmentChart"></canvas>
+                        </div>
+                         <div class="bg-white p-6 rounded-lg shadow-md">
+                            <h3 class="text-xl font-semibold mb-4 text-gray-700">Received from Supplier</h3>
+                            <canvas id="receivedBySupplierChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add New Entry View -->
+                <div id="add-view" class="page hidden">
+                    <div class="bg-white p-6 md:p-8 rounded-lg shadow-md max-w-2xl mx-auto w-full">
+                        <h3 class="text-2xl font-bold mb-6 text-gray-800">Add New Inventory Entry</h3>
+                        <form id="add-entry-form" class="space-y-6">
+                            <div>
+                                <label for="date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                <input type="date" id="date" name="date" required class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="type" class="block text-sm font-medium text-gray-700 mb-1">Transaction Type</label>
+                                <select id="type" name="type" required class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="in">Diesel received</option>
+                                    <option value="out">Diesel usage</option>
+                                </select>
+                            </div>
+                            <div id="supplier-group" class="hidden space-y-6">
+                                <div>
+                                    <label for="supplier" class="block text-sm font-medium text-gray-700 mb-1">Supplier Name</label>
+                                    <select id="supplier" name="supplier" class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                        <option value="">Select Supplier</option>
+                                        <option value="I_MAX">I_MAX</option>
+                                        <option value="Shwe War Hlaing">Shwe War Hlaing</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Price per Liter (Kyats)</label>
+                                    <input type="number" id="price" name="price" min="0.01" step="0.01" placeholder="e.g., 1800.00" class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                            </div>
+                            <div id="vehicle-group" class="hidden">
+                                <label for="vehicle" class="block text-sm font-medium text-gray-700 mb-1">Vehicle/Equipment</label>
+                                <select id="vehicle" name="vehicle" class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">Select Vehicle/Equipment</option>
+                                    <optgroup label="Dump Truck">
+                                        <option value="3Q/7695 (Isuzu)">3Q/7695 (Isuzu)</option>
+                                        <option value="3Q/7703 (Isuzu)">3Q/7703 (Isuzu)</option>
+                                        <option value="6Q/2033">6Q/2033</option>
+                                        <option value="6Q/2041">6Q/2041</option>
+                                        <option value="6Q/2043">6Q/2043</option>
+                                        <option value="6Q/2048">6Q/2048</option>
+                                        <option value="6Q/2050">6Q/2050</option>
+                                        <option value="6Q/2063">6Q/2063</option>
+                                        <option value="6Q/2068">6Q/2068</option>
+                                    </optgroup>
+                                    <optgroup label="Fork Lift">
+                                        <option value="3 T NO.1">3 T NO.1</option>
+                                        <option value="3 T NO.2">3 T NO.2</option>
+                                        <option value="3 T NO.3">3 T NO.3</option>
+                                        <option value="10 T">10 T</option>
+                                    </optgroup>
+                                    <optgroup label="Wheel Loader">
+                                        <option value="WA320-STD-19001">WA320-STD-19001</option>
+                                        <option value="WA320-STD-19002">WA320-STD-19002</option>
+                                        <option value="WA320-HL-19001">WA320-HL-19001</option>
+                                        <option value="WA320-HL-19002">WA320-HL-19002</option>
+                                    </optgroup>
+                                    <optgroup label="Excavator">
+                                        <option value="PC130-E9-19001">PC130-E9-19001</option>
+                                        <option value="PC130-E9-19002">PC130-E9-19002</option>
+                                        <option value="PC130-E9-19003">PC130-E9-19003</option>
+                                    </optgroup>
+                                    <optgroup label="Generator">
+                                        <option value="GEN 400 KVA">GEN 400 KVA</option>
+                                        <option value="GEN 1,250 KVA">GEN 1,250 KVA</option>
+                                    </optgroup>
+                                    <optgroup label="Double Cab">
+                                        <option value="ISUZU(2S-5856)">ISUZU(2S-5856)</option>
+                                        <option value="OTHERS">OTHERS</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">Quantity (Liters)</label>
+                                <input type="number" id="quantity" name="quantity" min="0.01" step="0.01" required placeholder="e.g., 500.50" class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                                <textarea id="notes" name="notes" rows="3" placeholder="Any additional details..." class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                            </div>
+                            <div class="flex justify-end space-x-4">
+                                <button type="reset" class="px-6 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">Clear</button>
+                                <button type="submit" class="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Add Entry</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Inventory List View -->
+                <div id="list-view" class="page hidden">
+                     <div class="bg-white p-6 rounded-lg shadow-md">
+                        <!-- Inventory List Filters -->
+                        <div id="list-filters-container" class="mb-6 p-4 border border-gray-200 rounded-lg admin-only">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end">
+                                <div>
+                                    <label for="list-start-date" class="block text-sm font-medium text-gray-700">Start Date</label>
+                                    <input type="date" id="list-start-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                </div>
+                                <div>
+                                    <label for="list-end-date" class="block text-sm font-medium text-gray-700">End Date</label>
+                                    <input type="date" id="list-end-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                </div>
+                                <div>
+                                    <label for="list-type-filter" class="block text-sm font-medium text-gray-700">Type</label>
+                                    <select id="list-type-filter" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                        <option value="">All</option>
+                                        <option value="in">Received</option>
+                                        <option value="out">Usage</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="list-search" class="block text-sm font-medium text-gray-700">Search</label>
+                                    <input type="text" id="list-search" placeholder="Supplier or Vehicle..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button id="apply-list-filters" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">Filter</button>
+                                    <button id="reset-list-filters" class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Reset</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
+                             <h3 class="text-2xl font-bold text-gray-800 mb-4 sm:mb-0">Inventory Records</h3>
+                             <div class="flex space-x-2 admin-only" id="list-export-buttons">
+                                 <button id="export-pdf" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium flex items-center space-x-2">
+                                     <i class="fas fa-file-pdf"></i>
+                                     <span>Export PDF</span>
+                                 </button>
+                                 <button id="export-excel" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium flex items-center space-x-2">
+                                     <i class="fas fa-file-excel"></i>
+                                     <span>Export Excel</span>
+                                 </button>
+                             </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity (L)</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price/L</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                                        <th scope="col" id="actions-header" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider admin-only">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventory-table-body" class="bg-white divide-y divide-gray-200">
+                                    <!-- Data will be inserted here by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Costing Report View -->
+                <div id="costing-view" class="page hidden admin-only">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-4">Inventory Costing Report (FIFO)</h3>
+                        <!-- Filters -->
+                        <div class="mb-6 p-4 border border-gray-200 rounded-lg">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                                <div>
+                                    <label for="costing-start-date" class="block text-sm font-medium text-gray-700">Start Date</label>
+                                    <input type="date" id="costing-start-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                </div>
+                                <div>
+                                    <label for="costing-end-date" class="block text-sm font-medium text-gray-700">End Date</label>
+                                    <input type="date" id="costing-end-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                </div>
+                                <button id="generate-costing-report" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">Generate Report</button>
+                            </div>
+                        </div>
+
+                        <!-- Results -->
+                        <div id="costing-results-container" class="hidden">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                <div class="bg-blue-50 p-5 rounded-lg text-center">
+                                    <h4 class="text-sm font-medium text-blue-800">Avg. Cost of Closing Stock</h4>
+                                    <p id="avg-cost" class="text-2xl font-bold text-blue-900 mt-1">0 Kyats</p>
+                                </div>
+                                <div class="bg-red-50 p-5 rounded-lg text-center">
+                                    <h4 class="text-sm font-medium text-red-800">Cost of Fuel Used</h4>
+                                    <p id="cost-of-used" class="text-2xl font-bold text-red-900 mt-1">0 Kyats</p>
+                                </div>
+                                <div class="bg-green-50 p-5 rounded-lg text-center">
+                                    <h4 class="text-sm font-medium text-green-800">Value of Closing Stock</h4>
+                                    <p id="closing-stock-value" class="text-2xl font-bold text-green-900 mt-1">0 Kyats</p>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xl font-bold text-gray-700">FIFO Calculation Breakdown</h4>
+                                <div class="flex space-x-2">
+                                    <button id="export-costing-pdf" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium flex items-center space-x-2">
+                                        <i class="fas fa-file-pdf"></i>
+                                        <span>Export PDF</span>
+                                    </button>
+                                    <button id="export-costing-excel" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium flex items-center space-x-2">
+                                        <i class="fas fa-file-excel"></i>
+                                        <span>Export Excel</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Liters (L)</th>
+                                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Price/L (Kyats)</th>
+                                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Cost (Kyats)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="costing-table-body" class="bg-white divide-y divide-gray-200">
+                                        <!-- Calculation rows will be added here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-2xl leading-6 font-bold text-gray-900 mb-6">Edit Entry</h3>
+                <form id="edit-entry-form" class="space-y-6 text-left">
+                    <input type="hidden" id="edit-id">
+                    <div>
+                        <label for="edit-date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                        <input type="date" id="edit-date" name="date" required class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="edit-type" class="block text-sm font-medium text-gray-700 mb-1">Transaction Type</label>
+                        <select id="edit-type" name="type" required class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            <option value="in">Diesel received</option>
+                            <option value="out">Diesel usage</option>
+                        </select>
+                    </div>
+                    <div id="edit-supplier-group" class="hidden space-y-6">
+                        <div>
+                             <label for="edit-supplier" class="block text-sm font-medium text-gray-700 mb-1">Supplier Name</label>
+                            <select id="edit-supplier" name="supplier" class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Select Supplier</option>
+                                <option value="I_MAX">I_MAX</option>
+                                <option value="Shwe War Hlaing">Shwe War Hlaing</option>
+                            </select>
+                        </div>
+                        <div>
+                             <label for="edit-price" class="block text-sm font-medium text-gray-700 mb-1">Price per Liter (Kyats)</label>
+                             <input type="number" id="edit-price" name="price" min="0.01" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                    <div id="edit-vehicle-group" class="hidden">
+                        <label for="edit-vehicle" class="block text-sm font-medium text-gray-700 mb-1">Vehicle/Equipment</label>
+                        <select id="edit-vehicle" name="vehicle" class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select Vehicle/Equipment</option>
+                            <optgroup label="Dump Truck">
+                                <option value="3Q/7695 (Isuzu)">3Q/7695 (Isuzu)</option>
+                                <option value="3Q/7703 (Isuzu)">3Q/7703 (Isuzu)</option>
+                                <option value="6Q/2033">6Q/2033</option>
+                                <option value="6Q/2041">6Q/2041</option>
+                                <option value="6Q/2043">6Q/2043</option>
+                                <option value="6Q/2048">6Q/2048</option>
+                                <option value="6Q/2050">6Q/2050</option>
+                                <option value="6Q/2063">6Q/2063</option>
+                                <option value="6Q/2068">6Q/2068</option>
+                            </optgroup>
+                            <optgroup label="Fork Lift">
+                                <option value="3 T NO.1">3 T NO.1</option>
+                                <option value="3 T NO.2">3 T NO.2</option>
+                                <option value="3 T NO.3">3 T NO.3</option>
+                                <option value="10 T">10 T</option>
+                            </optgroup>
+                            <optgroup label="Wheel Loader">
+                                <option value="WA320-STD-19001">WA320-STD-19001</option>
+                                <option value="WA320-STD-19002">WA320-STD-19002</option>
+                                <option value="WA320-HL-19001">WA320-HL-19001</option>
+                                <option value="WA320-HL-19002">WA320-HL-19002</option>
+                            </optgroup>
+                            <optgroup label="Excavator">
+                                <option value="PC130-E9-19001">PC130-E9-19001</option>
+                                <option value="PC130-E9-19002">PC130-E9-19002</option>
+                                <option value="PC130-E9-19003">PC130-E9-19003</option>
+                            </optgroup>
+                            <optgroup label="Generator">
+                                <option value="GEN 400 KVA">GEN 400 KVA</option>
+                                <option value="GEN 1,250 KVA">GEN 1,250 KVA</option>
+                            </optgroup>
+                            <optgroup label="Double Cab">
+                                <option value="ISUZU(2S-5856)">ISUZU(2S-5856)</option>
+                                <option value="OTHERS">OTHERS</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="edit-quantity" class="block text-sm font-medium text-gray-700 mb-1">Quantity (Liters)</label>
+                        <input type="number" id="edit-quantity" name="quantity" min="0.01" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="edit-notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                        <textarea id="edit-notes" name="notes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+                    <div class="items-center px-4 py-3 flex justify-end space-x-4">
+                        <button id="cancel-edit" type="button" class="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none">Cancel</button>
+                        <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-confirm-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+        <div class="relative top-40 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Delete Entry</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500">Are you sure you want to delete this entry? This action cannot be undone.</p>
+                </div>
+                <div class="items-center px-4 py-3 flex justify-center space-x-4">
+                    <button id="cancel-delete" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 w-24">Cancel</button>
+                    <button id="confirm-delete" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 w-24">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notification Element -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Your provided Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAgr2GI4C88kBtfqXcqYOnai_aRwFOle-I",
+            authDomain: "my-articles-f406b.firebaseapp.com",
+            projectId: "my-articles-f406b",
+            storageBucket: "my-articles-f406b.appspot.com",
+            messagingSenderId: "320810787173",
+            appId: "1:320810787173:web:9956a08ed75755702bc18c"
+        };
+        
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // Initialize Firebase
+        let app, db, auth;
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            console.log("Firebase initialized successfully.");
+        } catch (e) {
+            console.error("Firebase initialization failed:", e);
+            alert("Firebase could not be initialized. Please check the console for details.");
+        }
+
+        // Global variables
+        let charts = {};
+        let allInventoryData = [];
+        let currentlyDisplayedData = []; // To store filtered data for exports
+        let dashboardFilteredData = []; // To store filtered dashboard data
+        let unsubscribeFromInventory; // To detach Firestore listener on logout
+        let deleteTargetId = null; // To store the ID of the item to be deleted
+        let currentUserRole = 'user'; // Default role
+        let costingReportData = null; // To store data for costing report exports
+
+        // --- UI Element Selectors ---
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app-container');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const showRegisterBtn = document.getElementById('show-register');
+        const showLoginBtn = document.getElementById('show-login');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userAvatar = document.getElementById('user-avatar');
+        
+        const pages = document.querySelectorAll('.page');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const headerTitle = document.querySelector('#app-container header h2');
+        const addForm = document.getElementById('add-entry-form');
+        const editForm = document.getElementById('edit-entry-form');
+        const tableBody = document.getElementById('inventory-table-body');
+        const editModal = document.getElementById('edit-modal');
+        const cancelEditBtn = document.getElementById('cancel-edit');
+        const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+        const cancelDeleteBtn = document.getElementById('cancel-delete');
+        const confirmDeleteBtn = document.getElementById('confirm-delete');
+        
+        const typeSelect = document.getElementById('type');
+        const supplierGroup = document.getElementById('supplier-group');
+        const vehicleGroup = document.getElementById('vehicle-group');
+        const editTypeSelect = document.getElementById('edit-type');
+        const editSupplierGroup = document.getElementById('edit-supplier-group');
+        const editVehicleGroup = document.getElementById('edit-vehicle-group');
+        const priceInput = document.getElementById('price');
+        const editPriceInput = document.getElementById('edit-price');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const toggleBtn = document.getElementById('sidebar-toggle');
+        const closeBtn = document.getElementById('sidebar-close');
+
+        // --- Toast Notifications ---
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast show ${type}`;
+            setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
+        }
+
+        // --- Role-Based UI Control ---
+        function setupUIForRole(role) {
+            const adminElements = document.querySelectorAll('.admin-only');
+            if (role === 'admin') {
+                adminElements.forEach(el => el.style.display = ''); 
+            } else {
+                adminElements.forEach(el => el.style.display = 'none');
+            }
+             // Refresh the table to show/hide the actions column correctly
+            applyListFilters();
+        }
+
+        // --- Authentication Logic ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // User is signed in, get their role from Firestore
+                const userRoleRef = doc(db, "users", user.uid, "profile", "details");
+                const docSnap = await getDoc(userRoleRef);
+
+                if (docSnap.exists() && docSnap.data().role === 'admin') {
+                    currentUserRole = 'admin';
+                } else {
+                    currentUserRole = 'user';
+                }
+
+                authContainer.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+                userAvatar.textContent = user.email.charAt(0).toUpperCase();
+                setupUIForRole(currentUserRole);
+                
+                if (currentUserRole === 'admin') {
+                    showPage('dashboard-view');
+                } else {
+                    showPage('add-view');
+                }
+
+                listenForInventoryUpdates();
+            } else {
+                // User is signed out
+                authContainer.classList.remove('hidden');
+                appContainer.classList.add('hidden');
+                if (unsubscribeFromInventory) unsubscribeFromInventory();
+                allInventoryData = [];
+                currentlyDisplayedData = [];
+                currentUserRole = 'user'; // Reset role on logout
+                renderTable([]);
+                if(charts['inventoryChart']) {
+                    updateDashboard([]);
+                }
+            }
+        });
+
+        loginForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            signInWithEmailAndPassword(auth, email, password)
+                .then(() => showToast('Logged in successfully!'))
+                .catch(error => showToast(error.message, 'error'));
+        });
+        
+        registerForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const role = document.getElementById('register-role').value;
+
+            createUserWithEmailAndPassword(auth, email, password)
+                .then(async (userCredential) => {
+                    const user = userCredential.user;
+                    const userRoleRef = doc(db, "users", user.uid, "profile", "details");
+                    await setDoc(userRoleRef, {
+                        email: user.email,
+                        role: role
+                    });
+                    showToast('Account created successfully! Please log in.', 'success');
+                    registerForm.reset();
+                    registerForm.classList.add('hidden');
+                    loginForm.classList.remove('hidden');
+                })
+                .catch(error => showToast(error.message, 'error'));
+        });
+
+
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth).then(() => showToast('Logged out.'));
+        });
+
+        showRegisterBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginForm.classList.add('hidden');
+            registerForm.classList.remove('hidden');
+        });
+
+        showLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerForm.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+        });
+
+        // --- Navigation & Sidebar ---
+        function showPage(pageId) {
+            pages.forEach(page => page.classList.add('hidden'));
+            document.getElementById(pageId).classList.remove('hidden');
+            const activeLink = document.querySelector(`#nav-${pageId.split('-')[0]}`);
+            navLinks.forEach(link => link.classList.remove('bg-gray-700'));
+            if (activeLink) activeLink.classList.add('bg-gray-700');
+            headerTitle.textContent = activeLink ? activeLink.querySelector('span').textContent : 'Dashboard';
+        }
+        
+        const closeSidebar = () => {
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
+        };
+
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.remove('-translate-x-full');
+            overlay.classList.remove('hidden');
+        });
+        
+        closeBtn.addEventListener('click', closeSidebar);
+        overlay.addEventListener('click', closeSidebar);
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const pageId = link.id.replace('nav-', '') + '-view';
+                if (link.id === 'nav-add') {
+                    addForm.reset();
+                    document.getElementById('date').valueAsDate = new Date();
+                    handleTransactionTypeChange('in', supplierGroup, vehicleGroup, priceInput);
+                }
+                showPage(pageId);
+                if (window.innerWidth < 1024) {
+                   closeSidebar();
+                }
+            });
+        });
+
+        // --- Form Logic ---
+        function handleTransactionTypeChange(type, supplierEl, vehicleEl, priceEl) {
+            if (type === 'in') {
+                supplierEl.classList.remove('hidden');
+                vehicleEl.classList.add('hidden');
+                if(vehicleEl.querySelector('select')) vehicleEl.querySelector('select').value = '';
+                priceEl.required = true;
+
+            } else if (type === 'out') {
+                supplierEl.classList.add('hidden');
+                if(supplierEl.querySelector('select')) supplierEl.querySelector('select').value = '';
+                vehicleEl.classList.remove('hidden');
+                priceEl.required = false;
+                priceEl.value = '';
+            }
+        }
+
+        typeSelect.addEventListener('change', (e) => handleTransactionTypeChange(e.target.value, supplierGroup, vehicleGroup, priceInput));
+        editTypeSelect.addEventListener('change', (e) => handleTransactionTypeChange(e.target.value, editSupplierGroup, editVehicleGroup, editPriceInput));
+
+        // --- Firestore CRUD ---
+        function getInventoryCollection() {
+            return collection(db, 'shared_inventory');
+        }
+
+        addForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (!user) return showToast('You must be logged in.', 'error');
+
+            const formData = new FormData(addForm);
+            const newEntry = {
+                date: formData.get('date'),
+                type: formData.get('type'),
+                quantity: parseFloat(formData.get('quantity')),
+                supplier: formData.get('supplier') || '',
+                vehicle: formData.get('vehicle') || '',
+                notes: formData.get('notes') || '',
+                price: formData.get('type') === 'in' ? parseFloat(formData.get('price')) || 0 : 0,
+                createdAt: new Date(),
+                addedBy: user.email 
+            };
+
+            try {
+                await addDoc(getInventoryCollection(), newEntry); 
+                showToast('Entry added successfully!');
+                addForm.reset();
+                document.getElementById('date').valueAsDate = new Date();
+                handleTransactionTypeChange('in', supplierGroup, vehicleGroup, priceInput);
+            } catch (error) {
+                console.error("Error adding document:", error);
+                showToast('Error adding entry.', 'error');
+            }
+        });
+        
+        function listenForInventoryUpdates() {
+            if (unsubscribeFromInventory) unsubscribeFromInventory();
+            const q = query(getInventoryCollection(), orderBy("createdAt", "desc"));
+            unsubscribeFromInventory = onSnapshot(q, (snapshot) => {
+                allInventoryData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                applyListFilters();
+                if (currentUserRole === 'admin') {
+                   applyDashboardFilters();
+                }
+            }, (error) => {
+                console.error("Error fetching data:", error);
+                showToast("Permission Error: Please update Firestore rules.", "error");
+            });
+        }
+
+        editForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (!user) return showToast('You must be logged in.', 'error');
+
+            const id = document.getElementById('edit-id').value;
+            const docRef = doc(db, 'shared_inventory', id);
+            const updatedData = {
+                date: document.getElementById('edit-date').value,
+                type: document.getElementById('edit-type').value,
+                quantity: parseFloat(document.getElementById('edit-quantity').value),
+                supplier: document.getElementById('edit-supplier').value,
+                vehicle: document.getElementById('edit-vehicle').value,
+                notes: document.getElementById('edit-notes').value,
+                price: document.getElementById('edit-type').value === 'in' ? parseFloat(document.getElementById('edit-price').value) || 0 : 0,
+            };
+            try {
+                await updateDoc(docRef, updatedData);
+                showToast('Entry updated successfully!');
+                closeEditModal();
+            } catch (error) {
+                console.error("Error updating document:", error);
+                showToast('Error updating entry.', 'error');
+            }
+        });
+
+        // --- Delete Logic with Custom Modal ---
+        function openDeleteModal(id) {
+            deleteTargetId = id;
+            deleteConfirmModal.classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            deleteTargetId = null;
+            deleteConfirmModal.classList.add('hidden');
+        }
+
+        cancelDeleteBtn.addEventListener('click', closeDeleteModal);
+        confirmDeleteBtn.addEventListener('click', async () => {
+            if (deleteTargetId) {
+                const user = auth.currentUser;
+                if (!user) {
+                    showToast('You must be logged in.', 'error');
+                    closeDeleteModal();
+                    return;
+                }
+                try {
+                    await deleteDoc(doc(db, 'shared_inventory', deleteTargetId));
+                    showToast('Entry deleted successfully!');
+                } catch (error) {
+                    console.error("Error deleting document:", error);
+                    showToast('Error deleting entry.', 'error');
+                } finally {
+                    closeDeleteModal();
+                }
+            }
+        });
+
+        // --- UI Rendering ---
+        function renderTable(data) {
+            tableBody.innerHTML = '';
+            currentlyDisplayedData = data; // Update for exports
+            
+            const colspan = currentUserRole === 'admin' ? '8' : '7';
+
+            if (data.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="${colspan}" class="text-center py-4 text-gray-500">No records found.</td></tr>`;
+                return;
+            }
+
+            const sortedData = data.sort((a, b) => new Date(b.date) - new Date(a.date));
+            sortedData.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+
+                const actionsCell = currentUserRole === 'admin' 
+                    ? `<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button class="text-indigo-600 hover:text-indigo-900 mr-3 edit-btn" data-id="${item.id}"><i class="fas fa-edit"></i> Edit</button>
+                        <button class="text-red-600 hover:text-red-900 delete-btn" data-id="${item.id}"><i class="fas fa-trash"></i> Delete</button>
+                    </td>`
+                    : '';
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.type === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${item.type === 'in' ? 'Received' : 'Usage'}</span></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.quantity.toFixed(2)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.type === 'in' ? (item.price || 0).toFixed(2) : 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.supplier || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.vehicle || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate">${item.notes}</td>
+                    ${actionsCell}
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // --- Filtering Logic ---
+        document.getElementById('apply-list-filters').addEventListener('click', applyListFilters);
+        document.getElementById('reset-list-filters').addEventListener('click', () => {
+            document.getElementById('list-start-date').value = '';
+            document.getElementById('list-end-date').value = '';
+            document.getElementById('list-type-filter').value = '';
+            document.getElementById('list-search').value = '';
+            applyListFilters();
+        });
+
+        function applyListFilters() {
+            let dataToFilter = [...allInventoryData];
+            if (currentUserRole === 'admin') {
+                const startDate = document.getElementById('list-start-date').value;
+                const endDate = document.getElementById('list-end-date').value;
+                const type = document.getElementById('list-type-filter').value;
+                const searchTerm = document.getElementById('list-search').value.toLowerCase();
+
+                dataToFilter = allInventoryData.filter(item => {
+                    const itemDate = new Date(item.date);
+                    const start = startDate ? new Date(startDate) : null;
+                    const end = endDate ? new Date(endDate) : null;
+
+                    if (start && itemDate < start) return false;
+                    if (end && itemDate > end) return false;
+                    if (type && item.type !== type) return false;
+                    if (searchTerm && !((item.supplier || '').toLowerCase().includes(searchTerm) || (item.vehicle || '').toLowerCase().includes(searchTerm))) return false;
+                    
+                    return true;
+                });
+            }
+            renderTable(dataToFilter);
+        }
+        
+        document.getElementById('apply-dash-filters').addEventListener('click', applyDashboardFilters);
+        document.getElementById('reset-dash-filters').addEventListener('click', () => {
+            document.getElementById('dash-start-date').value = '';
+            document.getElementById('dash-end-date').value = '';
+            applyDashboardFilters();
+        });
+
+        function applyDashboardFilters() {
+            const startDate = document.getElementById('dash-start-date').value;
+            const endDate = document.getElementById('dash-end-date').value;
+            
+            let filteredData = allInventoryData;
+            if (startDate || endDate) {
+                 filteredData = allInventoryData.filter(item => {
+                    const itemDate = new Date(item.date);
+                    const start = startDate ? new Date(startDate) : null;
+                    const end = endDate ? new Date(endDate) : null;
+                    if (start && itemDate < start) return false;
+                    if (end && itemDate > end) return false;
+                    return true;
+                });
+            }
+            dashboardFilteredData = filteredData;
+            updateDashboard(filteredData);
+        }
+
+        // --- Dashboard & Charts ---
+        function updateDashboard(data) {
+            if(currentUserRole !== 'admin') return;
+            let totalIn = 0, totalOut = 0;
+            const sortedData = [...data].sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            let balance = 0;
+            const allTimeSorted = [...allInventoryData].sort((a, b) => new Date(a.date) - new Date(b.date));
+            const balanceChartData = allTimeSorted.map(item => {
+                balance += (item.type === 'in' ? item.quantity : -item.quantity);
+                return { date: item.date, balance: balance };
+            });
+
+            sortedData.forEach(item => {
+                if (item.type === 'in') totalIn += item.quantity;
+                else totalOut += item.quantity;
+            });
+
+            document.getElementById('current-stock').textContent = (balance).toFixed(2);
+            document.getElementById('total-inflow').textContent = totalIn.toFixed(2);
+            document.getElementById('total-outflow').textContent = totalOut.toFixed(2);
+            
+            updateLineChart(balanceChartData);
+            updateBarChart(data);
+            updatePieChart(data);
+            updateDonutChart(data);
+        }
+        
+        function createOrUpdateChart(chartId, type, data, options) {
+            const ctx = document.getElementById(chartId).getContext('2d');
+            if (charts[chartId]) charts[chartId].destroy();
+            charts[chartId] = new Chart(ctx, { type, data, options });
+        }
+
+        function updateLineChart(data) {
+            createOrUpdateChart('inventoryChart', 'line', {
+                labels: data.map(d => d.date),
+                datasets: [{
+                    label: 'Stock Level (Liters)',
+                    data: data.map(d => d.balance),
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderWidth: 2, fill: true, tension: 0.1
+                }]
+            }, { responsive: true, scales: { y: { beginAtZero: true } } });
+        }
+
+        function updateBarChart(data) {
+            const monthlyUsage = data.filter(d => d.type === 'out').reduce((acc, item) => {
+                const month = new Date(item.date).toLocaleString('default', { month: 'short', year: 'numeric' });
+                acc[month] = (acc[month] || 0) + item.quantity;
+                return acc;
+            }, {});
+
+            createOrUpdateChart('monthlyUsageChart', 'bar', {
+                labels: Object.keys(monthlyUsage),
+                datasets: [{
+                    label: 'Diesel Usage (Liters)',
+                    data: Object.values(monthlyUsage),
+                    backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    borderWidth: 1
+                }]
+            }, { responsive: true, scales: { y: { beginAtZero: true } } });
+        }
+
+        function updatePieChart(data) {
+            const vehicleCategories = {
+                'Dump Truck': ['3Q/', '6Q/'], 'Fork Lift': ['T NO', '10 T'], 'Wheel Loader': ['WA320'],
+                'Excavator': ['PC130'], 'Generator': ['GEN'], 'Double Cab': ['ISUZU', 'OTHERS']
+            };
+            const usageByCategory = data.filter(d => d.type === 'out' && d.vehicle).reduce((acc, item) => {
+                const category = Object.keys(vehicleCategories).find(cat => vehicleCategories[cat].some(key => item.vehicle.includes(key))) || 'Others';
+                acc[category] = (acc[category] || 0) + item.quantity;
+                return acc;
+            }, {});
+            
+            createOrUpdateChart('usageByEquipmentChart', 'pie', {
+                labels: Object.keys(usageByCategory),
+                datasets: [{
+                    label: 'Usage by Equipment',
+                    data: Object.values(usageByCategory),
+                    backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899']
+                }]
+            }, { responsive: true });
+        }
+        
+        function updateDonutChart(data) {
+            const receivedBySupplier = data.filter(d => d.type === 'in' && d.supplier).reduce((acc, item) => {
+                acc[item.supplier] = (acc[item.supplier] || 0) + item.quantity;
+                return acc;
+            }, {});
+
+            createOrUpdateChart('receivedBySupplierChart', 'doughnut', {
+                labels: Object.keys(receivedBySupplier),
+                datasets: [{
+                    label: 'Received from Supplier',
+                    data: Object.values(receivedBySupplier),
+                    backgroundColor: ['#06B6D4', '#6366F1']
+                }]
+            }, { responsive: true });
+        }
+
+        // --- Modal Logic ---
+        function openEditModal(id) {
+            const item = allInventoryData.find(d => d.id === id);
+            if (item) {
+                document.getElementById('edit-id').value = item.id;
+                document.getElementById('edit-date').value = item.date;
+                document.getElementById('edit-type').value = item.type;
+                document.getElementById('edit-quantity').value = item.quantity;
+                document.getElementById('edit-supplier').value = item.supplier || '';
+                document.getElementById('edit-vehicle').value = item.vehicle || '';
+                document.getElementById('edit-notes').value = item.notes;
+                document.getElementById('edit-price').value = item.price || '';
+                handleTransactionTypeChange(item.type, editSupplierGroup, editVehicleGroup, editPriceInput);
+                editModal.classList.remove('hidden');
+            }
+        }
+
+        function closeEditModal() {
+            editModal.classList.add('hidden');
+            editForm.reset();
+        }
+
+        cancelEditBtn.addEventListener('click', closeEditModal);
+
+        // --- Event Delegation ---
+        tableBody.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.edit-btn');
+            if (editBtn) openEditModal(editBtn.dataset.id);
+            const deleteBtn = e.target.closest('.delete-btn');
+            if (deleteBtn) openDeleteModal(deleteBtn.dataset.id);
+        });
+
+        // --- PDF Framework Drawer ---
+        function drawPdfFramework(doc, title) {
+            const pageCount = doc.internal.getNumberOfPages();
+            const pageWidth = doc.internal.pageSize.width;
+            const pageHeight = doc.internal.pageSize.height;
+
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(18);
+                doc.text("Diesel Inventory Control", pageWidth / 2, 15, { align: 'center' });
+                doc.setFontSize(14);
+                doc.text(title, pageWidth / 2, 22, { align: 'center' });
+                doc.setLineWidth(0.2);
+                doc.line(10, 25, pageWidth - 10, 25);
+                const date = new Date().toLocaleDateString('en-CA');
+                doc.setFontSize(10);
+                doc.text(`Report Generated: ${date}`, 10, pageHeight - 10);
+                doc.text("Created By Aung Ye Hein", pageWidth / 2, pageHeight - 10, { align: 'center' });
+                doc.text(`Page ${i} of ${pageCount}`, pageWidth - 10, pageHeight - 10, { align: 'right' });
+                doc.setLineWidth(0.5);
+                doc.rect(5, 5, pageWidth - 10, pageHeight - 10);
+            }
+        }
+
+        // --- Export Functions ---
+        document.getElementById('export-pdf').addEventListener('click', () => {
+            if (currentlyDisplayedData.length === 0) return showToast('No data to export.', 'error');
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.autoTable({
+                head: [['Date', 'Type', 'Quantity (L)', 'Price/L', 'Supplier', 'Vehicle', 'Notes']],
+                body: currentlyDisplayedData.map(item => [item.date, item.type === 'in' ? 'Received' : 'Usage', item.quantity.toFixed(2), item.type === 'in' ? (item.price || 0).toFixed(2) : 'N/A', item.supplier || '', item.vehicle || '', item.notes]),
+                startY: 30, theme: 'grid'
+            });
+
+            drawPdfFramework(doc, "Inventory Records Report");
+            doc.save('diesel_inventory.pdf');
+            showToast('PDF exported successfully!');
+        });
+
+        document.getElementById('export-excel').addEventListener('click', () => {
+            if (currentlyDisplayedData.length === 0) return showToast('No data to export.', 'error');
+            const worksheet = XLSX.utils.json_to_sheet(currentlyDisplayedData.map(item => ({
+                Date: item.date, Type: item.type === 'in' ? 'Received' : 'Usage', Quantity: item.quantity,
+                'Price/L': item.type === 'in' ? item.price : '',
+                Supplier: item.supplier || '', Vehicle: item.vehicle || '', Notes: item.notes
+            })));
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Inventory");
+            XLSX.writeFile(workbook, "diesel_inventory.xlsx");
+            showToast('Excel file exported successfully!');
+        });
+
+        document.getElementById('export-dashboard-pdf').addEventListener('click', () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const startDate = document.getElementById('dash-start-date').value || 'Start';
+            const endDate = document.getElementById('dash-end-date').value || 'Today';
+            const reportTitle = `Dashboard Report: ${startDate} to ${endDate}`;
+
+            drawPdfFramework(doc, reportTitle);
+            doc.setFontSize(12);
+            doc.text(`Total Received: ${document.getElementById('total-inflow').textContent} Liters`, 15, 35);
+            doc.text(`Total Usage: ${document.getElementById('total-outflow').textContent} Liters`, 15, 42);
+            doc.text(`Current Stock (Overall): ${document.getElementById('current-stock').textContent} Liters`, 15, 49);
+
+            const chart1 = document.getElementById('inventoryChart').toDataURL('image/png', 1.0);
+            doc.addImage(chart1, 'PNG', 15, 60, 180, 90);
+
+            const chart2 = document.getElementById('monthlyUsageChart').toDataURL('image/png', 1.0);
+            doc.addImage(chart2, 'PNG', 15, 160, 180, 90);
+
+            doc.addPage();
+            
+            const pageWidth = doc.internal.pageSize.width;
+            const chartWidth = 140;
+            const chartHeight = 70;
+            const xCentered = (pageWidth - chartWidth) / 2;
+
+            const chart3 = document.getElementById('usageByEquipmentChart').toDataURL('image/png', 1.0);
+            doc.addImage(chart3, 'PNG', xCentered, 40, chartWidth, chartHeight);
+
+            const chart4 = document.getElementById('receivedBySupplierChart').toDataURL('image/png', 1.0);
+            doc.addImage(chart4, 'PNG', xCentered, 150, chartWidth, chartHeight);
+            
+            drawPdfFramework(doc, reportTitle);
+
+            doc.save(`dashboard_report_${startDate}_to_${endDate}.pdf`);
+            showToast('Dashboard PDF exported!');
+        });
+
+        // --- Costing Report Logic (FIFO) ---
+        document.getElementById('generate-costing-report').addEventListener('click', () => {
+            const startDateStr = document.getElementById('costing-start-date').value;
+            const endDateStr = document.getElementById('costing-end-date').value;
+
+            if (!startDateStr || !endDateStr) {
+                return showToast('Please select both a start and end date.', 'error');
+            }
+            
+            const startDate = new Date(startDateStr);
+            const endDate = new Date(endDateStr);
+            const sortedData = [...allInventoryData].sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            // --- FIFO Calculation Engine ---
+            let fifoLayers = [];
+            // 1. Establish Opening Stock state
+            const dataBeforePeriod = sortedData.filter(item => new Date(item.date) < startDate);
+            dataBeforePeriod.forEach(item => {
+                if (item.type === 'in' && item.price > 0) {
+                    fifoLayers.push({ date: item.date, quantity: item.quantity, price: item.price });
+                } else if (item.type === 'out') {
+                    let usageQty = item.quantity;
+                    while (usageQty > 0 && fifoLayers.length > 0) {
+                        const oldestLayer = fifoLayers[0];
+                        if (oldestLayer.quantity <= usageQty) {
+                            usageQty -= oldestLayer.quantity;
+                            fifoLayers.shift();
+                        } else {
+                            oldestLayer.quantity -= usageQty;
+                            usageQty = 0;
+                        }
+                    }
+                }
+            });
+            const openingStockLayers = JSON.parse(JSON.stringify(fifoLayers));
+
+            // 2. Process transactions within the period
+            const transactionsInPeriod = sortedData.filter(item => new Date(item.date) >= startDate && new Date(item.date) <= endDate);
+            const purchasesInPeriod = [];
+            const usageGroupedByVehicle = {};
+
+            transactionsInPeriod.forEach(item => {
+                if (item.type === 'in' && item.price > 0) {
+                    const purchase = { date: item.date, quantity: item.quantity, price: item.price };
+                    fifoLayers.push(purchase);
+                    purchasesInPeriod.push(purchase);
+                } else if (item.type === 'out') {
+                    const vehicle = item.vehicle || 'Unspecified';
+                    if (!usageGroupedByVehicle[vehicle]) {
+                        usageGroupedByVehicle[vehicle] = { totalLiters: 0, details: [] };
+                    }
+                    usageGroupedByVehicle[vehicle].totalLiters += item.quantity;
+                    usageGroupedByVehicle[vehicle].details.push(item);
+                }
+            });
+
+            // 3. Calculate cost of usage based on grouped items
+            let totalCostOfUsed = 0;
+            let totalLitersUsed = 0;
+            const usageCostBreakdown = {};
+
+            for (const vehicle in usageGroupedByVehicle) {
+                let usageQty = usageGroupedByVehicle[vehicle].totalLiters;
+                totalLitersUsed += usageQty;
+                let vehicleCost = 0;
+                let batchBreakdown = [];
+
+                while (usageQty > 0 && fifoLayers.length > 0) {
+                    const oldestLayer = fifoLayers[0];
+                    const amountToConsume = Math.min(usageQty, oldestLayer.quantity);
+                    
+                    const costForThisChunk = amountToConsume * oldestLayer.price;
+                    vehicleCost += costForThisChunk;
+                    
+                    batchBreakdown.push({
+                        consumed: amountToConsume,
+                        price: oldestLayer.price,
+                        cost: costForThisChunk,
+                        from: oldestLayer.date
+                    });
+
+                    oldestLayer.quantity -= amountToConsume;
+                    usageQty -= amountToConsume;
+                    
+                    if (oldestLayer.quantity < 0.001) { // Use a small epsilon for float comparison
+                        fifoLayers.shift();
+                    }
+                }
+                totalCostOfUsed += vehicleCost;
+                usageCostBreakdown[vehicle] = {
+                    totalLiters: usageGroupedByVehicle[vehicle].totalLiters,
+                    totalCost: vehicleCost,
+                    breakdown: batchBreakdown
+                };
+            }
+            
+            // 4. Calculate final values
+            const closingStockLayers = fifoLayers;
+            const closingStockLiters = closingStockLayers.reduce((sum, layer) => sum + layer.quantity, 0);
+            const closingStockValue = closingStockLayers.reduce((sum, layer) => sum + (layer.quantity * layer.price), 0);
+            const avgCostOfClosingStock = closingStockLiters > 0 ? closingStockValue / closingStockLiters : 0;
+            
+            // Store for exports
+            costingReportData = {
+                startDateStr, endDateStr, openingStockLayers, purchasesInPeriod,
+                usageCostBreakdown, totalLitersUsed, totalCostOfUsed, closingStockLayers, closingStockValue
+            };
+
+            // 5. Render results
+            document.getElementById('avg-cost').textContent = `${avgCostOfClosingStock.toFixed(2)} Kyats`;
+            document.getElementById('cost-of-used').textContent = `${totalCostOfUsed.toLocaleString(undefined, {maximumFractionDigits:2})} Kyats`;
+            document.getElementById('closing-stock-value').textContent = `${closingStockValue.toLocaleString(undefined, {maximumFractionDigits:2})} Kyats`;
+            
+            const costingTableBody = document.getElementById('costing-table-body');
+            costingTableBody.innerHTML = '';
+            
+            // Section 1: Opening Stock
+            costingTableBody.innerHTML += `<tr class="bg-gray-100"><td class="px-6 py-3 font-bold text-gray-700" colspan="4">Opening Stock (as of ${startDateStr})</td></tr>`;
+            if (openingStockLayers.length > 0) {
+                openingStockLayers.forEach(layer => {
+                    costingTableBody.innerHTML += `<tr>
+                        <td class="px-6 py-4 pl-10">Batch from ${layer.date}</td>
+                        <td class="px-6 py-4 text-right">${layer.quantity.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-right">${layer.price.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-right">${(layer.quantity * layer.price).toLocaleString(undefined, {maximumFractionDigits:2})}</td>
+                    </tr>`;
+                });
+            } else {
+                 costingTableBody.innerHTML += `<tr><td class="px-6 py-4 pl-10 text-gray-500" colspan="4">No opening stock</td></tr>`;
+            }
+
+            // Section 2: Purchases
+            costingTableBody.innerHTML += `<tr class="bg-gray-100"><td class="px-6 py-3 font-bold text-gray-700" colspan="4">Purchases during Period</td></tr>`;
+             if (purchasesInPeriod.length > 0) {
+                purchasesInPeriod.forEach(p => {
+                    costingTableBody.innerHTML += `<tr>
+                        <td class="px-6 py-4 pl-10">Purchase on ${p.date}</td>
+                        <td class="px-6 py-4 text-right">${p.quantity.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-right">${p.price.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-right">${(p.quantity * p.price).toLocaleString(undefined, {maximumFractionDigits:2})}</td>
+                    </tr>`;
+                });
+            } else {
+                 costingTableBody.innerHTML += `<tr><td class="px-6 py-4 pl-10 text-gray-500" colspan="4">No purchases in this period</td></tr>`;
+            }
+
+            // Section 3: Cost of Fuel Used
+            costingTableBody.innerHTML += `<tr class="bg-red-50"><td class="px-6 py-3 font-bold text-red-800" colspan="4">Cost of Fuel Used (by Item)</td></tr>`;
+            if (Object.keys(usageCostBreakdown).length > 0) {
+                 for (const vehicle in usageCostBreakdown) {
+                    const usage = usageCostBreakdown[vehicle];
+                    costingTableBody.innerHTML += `<tr class="border-t"><td class="px-6 py-2 font-semibold text-red-700" colspan="4">${vehicle}</td></tr>`;
+                    usage.breakdown.forEach(b => {
+                        costingTableBody.innerHTML += `<tr>
+                            <td class="px-6 py-2 pl-12 text-sm text-gray-600"> -> from batch of ${b.from}</td>
+                            <td class="px-6 py-2 text-right text-sm text-gray-600">${b.consumed.toFixed(2)}</td>
+                            <td class="px-6 py-2 text-right text-sm text-gray-600">${b.price.toFixed(2)}</td>
+                            <td class="px-6 py-2 text-right text-sm text-gray-600">${b.cost.toLocaleString(undefined, {maximumFractionDigits:2})}</td>
+                        </tr>`;
+                    });
+                    costingTableBody.innerHTML += `<tr>
+                        <td class="px-6 py-2 pl-12 font-medium" colspan="1">Sub-total for ${vehicle}</td>
+                        <td class="px-6 py-2 text-right font-medium">${usage.totalLiters.toFixed(2)}</td>
+                        <td class="px-6 py-2 text-right"></td>
+                        <td class="px-6 py-2 text-right font-medium">${usage.totalCost.toLocaleString(undefined, {maximumFractionDigits:2})}</td>
+                    </tr>`;
+                 }
+                 costingTableBody.innerHTML += `<tr class="border-t bg-red-100">
+                    <td class="px-6 py-4 font-bold text-red-800">Total Cost of Fuel Used</td>
+                    <td class="px-6 py-4 text-right font-bold text-red-800">${totalLitersUsed.toFixed(2)}</td>
+                    <td class="px-6 py-4 text-right font-bold text-red-800"></td>
+                    <td class="px-6 py-4 text-right font-bold text-red-800">${totalCostOfUsed.toLocaleString(undefined, {maximumFractionDigits:2})}</td>
+                </tr>`;
+            } else {
+                costingTableBody.innerHTML += `<tr><td class="px-6 py-4 pl-10 text-gray-500" colspan="4">No fuel usage in this period</td></tr>`;
+            }
+
+            // Section 4: Closing Stock
+            costingTableBody.innerHTML += `<tr class="bg-green-50"><td class="px-6 py-3 font-bold text-green-800" colspan="4">Closing Stock (as of ${endDateStr})</td></tr>`;
+            if(closingStockLayers.length > 0) {
+                closingStockLayers.forEach(layer => {
+                     costingTableBody.innerHTML += `<tr>
+                        <td class="px-6 py-4 pl-10">Remaining batch from ${layer.date}</td>
+                        <td class="px-6 py-4 text-right">${layer.quantity.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-right">${layer.price.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-right">${(layer.quantity * layer.price).toLocaleString(undefined, {maximumFractionDigits:2})}</td>
+                    </tr>`;
+                });
+                costingTableBody.innerHTML += `<tr class="border-t bg-green-100"><td class="px-6 py-4 font-bold text-green-800" colspan="3">Total Value of Closing Stock</td><td class="px-6 py-4 text-right font-bold text-green-800">${closingStockValue.toLocaleString(undefined, {maximumFractionDigits:2})}</td></tr>`;
+            } else {
+                costingTableBody.innerHTML += `<tr><td class="px-6 py-4 pl-10 text-gray-500" colspan="4">No closing stock</td></tr>`;
+            }
+            
+            document.getElementById('costing-results-container').classList.remove('hidden');
+        });
+
+        // --- Costing Export Functions ---
+        document.getElementById('export-costing-pdf').addEventListener('click', () => {
+            if (!costingReportData) return showToast('Please generate a report first.', 'error');
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const reportTitle = `FIFO Costing Report: ${costingReportData.startDateStr} to ${costingReportData.endDateStr}`;
+            
+            const buildPdfBody = (data) => {
+                const body = [];
+                const nf = (num) => (num || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+                const f2 = (num) => (num || 0).toFixed(2);
+
+                const headerStyle = { fontStyle: 'bold', fillColor: '#f3f4f6', textColor: '#111827' };
+                const subHeaderStyle = { fontStyle: 'italic', textColor: '#4b5563' };
+                const totalStyle = { fontStyle: 'bold' };
+                const costHeaderStyle = { fontStyle: 'bold', fillColor: '#fee2e2', textColor: '#991b1b' };
+                const closingHeaderStyle = { fontStyle: 'bold', fillColor: '#dcfce7', textColor: '#14532d' };
+
+                body.push([{ content: `Opening Stock (as of ${data.startDateStr})`, colSpan: 4, styles: headerStyle }]);
+                if (data.openingStockLayers.length > 0) {
+                    data.openingStockLayers.forEach(l => body.push([`Batch from ${l.date}`, f2(l.quantity), f2(l.price), nf(l.quantity * l.price)]));
+                } else {
+                     body.push([{ content: 'No opening stock', colSpan: 4, styles: { halign: 'center' } }]);
+                }
+
+                body.push([{ content: `Purchases during Period`, colSpan: 4, styles: headerStyle }]);
+                 if (data.purchasesInPeriod.length > 0) {
+                    data.purchasesInPeriod.forEach(p => body.push([`Purchase on ${p.date}`, f2(p.quantity), f2(p.price), nf(p.quantity * p.price)]));
+                } else {
+                    body.push([{ content: 'No purchases in this period', colSpan: 4, styles: { halign: 'center' } }]);
+                }
+
+                body.push([{ content: `Cost of Fuel Used`, colSpan: 4, styles: costHeaderStyle }]);
+                if(Object.keys(data.usageCostBreakdown).length > 0) {
+                    for(const v in data.usageCostBreakdown) {
+                        body.push([{ content: v, colSpan: 4, styles: subHeaderStyle }]);
+                        data.usageCostBreakdown[v].breakdown.forEach(b => body.push([`  -> from ${b.from}`, f2(b.consumed), f2(b.price), nf(b.cost)]));
+                    }
+                    body.push([
+                        { content: `Total Cost of Fuel Used`, styles: totalStyle }, 
+                        { content: f2(data.totalLitersUsed), styles: totalStyle }, 
+                        '', 
+                        { content: nf(data.totalCostOfUsed), styles: totalStyle }
+                    ]);
+                } else {
+                     body.push([{ content: 'No fuel usage in this period', colSpan: 4, styles: { halign: 'center' } }]);
+                }
+
+                body.push([{ content: `Closing Stock (as of ${data.endDateStr})`, colSpan: 4, styles: closingHeaderStyle }]);
+                if (data.closingStockLayers.length > 0) {
+                    data.closingStockLayers.forEach(l => body.push([`Remaining batch from ${l.date}`, f2(l.quantity), f2(l.price), nf(l.quantity * l.price)]));
+                    body.push([
+                        { content: `Total Value of Closing Stock`, colSpan: 3, styles: totalStyle },
+                        { content: nf(data.closingStockValue), styles: totalStyle }
+                    ]);
+                } else {
+                    body.push([{ content: 'No closing stock', colSpan: 4, styles: { halign: 'center' } }]);
+                }
+                
+                return body;
+            };
+
+            const tableBodyData = buildPdfBody(costingReportData);
+
+            doc.autoTable({
+                head: [['Description', 'Liters (L)', 'Price/L (Kyats)', 'Total Cost (Kyats)']],
+                body: tableBodyData,
+                startY: 30, 
+                theme: 'grid',
+                didParseCell: function (data) {
+                    if (data.cell.raw && typeof data.cell.raw === 'object' && data.cell.raw.styles) {
+                        Object.assign(data.cell.styles, data.cell.raw.styles);
+                    }
+                }
+            });
+
+            drawPdfFramework(doc, reportTitle);
+            doc.save(`fifo_costing_report_${costingReportData.startDateStr}_to_${costingReportData.endDateStr}.pdf`);
+            showToast('Costing PDF exported!');
+        });
+
+        document.getElementById('export-costing-excel').addEventListener('click', () => {
+             if (!costingReportData) return showToast('Please generate a report first.', 'error');
+            
+            const excelData = [];
+            excelData.push({ A: `Opening Stock (as of ${costingReportData.startDateStr})` });
+            costingReportData.openingStockLayers.forEach(l => excelData.push({ A: `Batch from ${l.date}`, B: l.quantity, C: l.price, D: l.quantity * l.price }));
+            
+            excelData.push({ A: `Purchases during Period` });
+            costingReportData.purchasesInPeriod.forEach(p => excelData.push({ A: `Purchase on ${p.date}`, B: p.quantity, C: p.price, D: p.quantity * p.price }));
+
+            excelData.push({ A: 'Cost of Fuel Used' });
+            for(const v in costingReportData.usageCostBreakdown) {
+                 excelData.push({ A: v });
+                 costingReportData.usageCostBreakdown[v].breakdown.forEach(b => excelData.push({ A: `  -> from ${b.from}`, B: b.consumed, C: b.price, D: b.cost}));
+            }
+            excelData.push({ A: 'Total Cost of Fuel Used', B: costingReportData.totalLitersUsed, D: costingReportData.totalCostOfUsed });
+
+            excelData.push({ A: `Closing Stock (as of ${costingReportData.endDateStr})` });
+            costingReportData.closingStockLayers.forEach(l => excelData.push({ A: `Remaining batch from ${l.date}`, B: l.quantity, C: l.price, D: l.quantity * l.price }));
+            excelData.push({ A: 'Total Value of Closing Stock', D: costingReportData.closingStockValue });
+
+            const worksheet = XLSX.utils.json_to_sheet(excelData, {header: ["Description", "Liters (L)", "Price/L (Kyats)", "Total Cost (Kyats)"], skipHeader: true});
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "FIFO Costing Report");
+            XLSX.writeFile(workbook, `fifo_costing_report_${costingReportData.startDateStr}_to_${costingReportData.endDateStr}.xlsx`);
+            showToast('Costing Excel file exported!');
+        });
+
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('date').valueAsDate = new Date();
+            handleTransactionTypeChange(typeSelect.value, supplierGroup, vehicleGroup, priceInput);
+        });
+
+    </script>
+</body>
+</html>
+
